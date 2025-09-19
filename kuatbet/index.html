@@ -1,5 +1,53 @@
-{
-  "main": "https://shortvip.co/kuatbets",
-  "backup1": "https://linkcepat.co/kuatbets,"
-  "backup2": "https://jali.me/kuatbets"
-}
+<!doctype html>
+<meta charset="utf-8">
+<title>Redirecting…</title>
+<style>
+  html,body{height:100%;margin:0;font:16px/1.4 system-ui,Arial}
+  .box{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
+  .small{color:#666;font-size:.9rem}
+</style>
+<div class="box">
+  <div>
+    <h1>Mengarahkan…</h1>
+    <p id="status">Memuat konfigurasi.</p>
+    <p class="small">Jika tidak pindah otomatis, <a id="manual" href="#">klik di sini</a>.</p>
+  </div>
+</div>
+<script>
+(async function(){
+  const status = document.getElementById('status');
+  const manual = document.getElementById('manual');
+
+  // Ambil config di folder yang sama: ./links.json
+  let cfg;
+  try{
+    const r = await fetch('./links.json', {cache:'no-store'});
+    cfg = await r.json();
+  }catch(e){
+    status.textContent = 'Gagal memuat konfigurasi.';
+    return;
+  }
+  const chain = [cfg.main, cfg.backup1 || cfg.backup, cfg.backup2].filter(Boolean);
+
+  function tryGo(url, timeoutMs){
+    return new Promise((resolve)=> {
+      let navigated = false;
+      const stop = () => { navigated = true; resolve(true); };
+      window.addEventListener('pagehide', stop, {once:true});
+      window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') stop();
+      }, {once:true});
+      setTimeout(()=>{ if(!navigated) resolve(false); }, timeoutMs);
+      manual.href = url;
+      status.textContent = 'Menuju: ' + url;
+      location.href = url;
+    });
+  }
+
+  for (let i=0;i<chain.length;i++){
+    const ok = await tryGo(chain[i], 4000); // 4 detik per percobaan
+    if (ok) return;
+  }
+  if (chain[0]) location.href = chain[0];
+})();
+</script>
