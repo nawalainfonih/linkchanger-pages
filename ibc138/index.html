@@ -1,31 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Redirect IBC138</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
+<!doctype html>
+<meta charset="utf-8">
+<title>Redirecting IBC138…</title>
+<style>
+  html,body{height:100%;margin:0;font:16px/1.4 system-ui,Arial}
+  .box{display:flex;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
+  .small{color:#666;font-size:.9rem}
+</style>
+<div class="box">
+  <div>
+    <h1>Mengarahkan ke IBC138…</h1>
+    <p id="status">Memuat konfigurasi.</p>
+    <p class="small">Jika tidak pindah otomatis, <a id="manual" href="#">klik di sini</a>.</p>
+  </div>
+</div>
 <script>
 (async function(){
-  const bust = Date.now();
-  const r = await fetch('./links.json?t=' + bust, { cache: 'no-store' });
-  const cfg = await r.json();
+  const status = document.getElementById('status');
+  const manual = document.getElementById('manual');
+
+  let cfg;
+  try{
+    const r = await fetch('./links.json', {cache:'no-store'});
+    cfg = await r.json();
+  }catch(e){
+    status.textContent = 'Gagal memuat konfigurasi.';
+    return;
+  }
   const chain = [cfg.main, cfg.backup1 || cfg.backup, cfg.backup2].filter(Boolean);
 
-  async function go(u, ms){
-    return new Promise(res=>{
-      let moved=false;
-      const stop=()=>{moved=true;res(true)};
-      addEventListener('pagehide',stop,{once:true});
-      addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') stop(); },{once:true});
-      setTimeout(()=>!moved&&res(false), ms);
-      location.href=u;
+  async function tryGo(url, timeoutMs){
+    return new Promise((resolve)=> {
+      let navigated = false;
+      const stop = () => { navigated = true; resolve(true); };
+      window.addEventListener('pagehide', stop, {once:true});
+      window.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') stop();
+      }, {once:true});
+      setTimeout(()=>{ if(!navigated) resolve(false); }, timeoutMs);
+      manual.href = url;
+      status.textContent = 'Menuju: ' + url;
+      location.href = url;
     });
   }
-  for (const u of chain) if (await go(u, 4000)) return;
+
+  for (const u of chain){
+    if (await tryGo(u, 4000)) return;
+  }
   if (chain[0]) location.href = chain[0];
 })();
 </script>
-</body>
-</html>
