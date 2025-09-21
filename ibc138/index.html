@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Redirect IBC138</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+<script>
+(async function(){
+  const bust = Date.now();
+  const r = await fetch('./links.json?t=' + bust, { cache: 'no-store' });
+  const cfg = await r.json();
+  const chain = [cfg.main, cfg.backup1 || cfg.backup, cfg.backup2].filter(Boolean);
+
+  async function go(u, ms){
+    return new Promise(res=>{
+      let moved=false;
+      const stop=()=>{moved=true;res(true)};
+      addEventListener('pagehide',stop,{once:true});
+      addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') stop(); },{once:true});
+      setTimeout(()=>!moved&&res(false), ms);
+      location.href=u;
+    });
+  }
+  for (const u of chain) if (await go(u, 4000)) return;
+  if (chain[0]) location.href = chain[0];
+})();
+</script>
+</body>
+</html>
